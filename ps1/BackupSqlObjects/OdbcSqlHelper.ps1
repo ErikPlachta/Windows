@@ -86,3 +86,40 @@ function Invoke-OdbcQuery {
 
     return $table
 }
+
+
+# Define parameters
+$server = "your-server.database.windows.net"
+$database = "your-db"
+$query = "SELECT * FROM sys.objects"
+$outputFile = "C:\Temp\QueryResults.csv"
+
+# Optional: Get previous timestamp if file already exists
+if (Test-Path $outputFile) {
+    $oldTimestamp = (Get-Item $outputFile).LastWriteTime
+    Write-Host "Old file modified time: $oldTimestamp"
+}
+
+# Get connection and run query
+$conn = Get-OdbcConnection -ServerName $server -DatabaseName $database
+if ($conn) {
+    $results = Invoke-OdbcQuery -Connection $conn -Query $query
+
+    # Export results to CSV
+    $results | Export-Csv -Path $outputFile -NoTypeInformation -Encoding UTF8
+
+    # Get updated timestamp
+    $newTimestamp = (Get-Item $outputFile).LastWriteTime
+    Write-Host "New file modified time: $newTimestamp"
+
+    # Check for timestamp change
+    if ($oldTimestamp -ne $null) {
+        if ($oldTimestamp -ne $newTimestamp) {
+            Write-Host "File has changed." -ForegroundColor Green
+        } else {
+            Write-Host "No changes detected." -ForegroundColor Yellow
+        }
+    }
+
+    $conn.Close()
+}
